@@ -60,4 +60,4 @@ jobs:
         with:
           app-name: 'MurphyDashboard'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_305723838D8F4ADFBB9A1376A3038BA7 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_35E1AE0609104C5395E4AB4BD946BFC1 }}
