@@ -2,11 +2,11 @@
 # Overview : Get more insights from Murphy Alert data. Creating dashboard similar to Murphy account        #
 #           Alerts dashboard and provide option to the user to convert multiple alerts to convert to Tasks.#
 #           Generated tasks can be seen inside ITM application.                                            #
-# ##########################################################################################################
-# Modified Date  ####   Modified By     ####    Comments                                                   #
-# Santosh               02-04-2022            Initial Code                                                 #
-# Sandeep               22-04-2022            functionality Changes done    
-# Sandeep               26-04-2022            UI changes                               #
+# Modified By : Santosh Chakre,
+#               Sandeep B                                                                           #
+# Modified Date : 02-04-2022 
+#               : 15-04-2022       
+# Modified Changes :                                                                        #
 # ---------------------------------------------------------------------------------------------------------#
 
 # Importing required libraries
