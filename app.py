@@ -2,17 +2,18 @@
 # Overview : Get more insights from Murphy Alert data. Creating dashboard similar to Murphy account        #
 #           Alerts dashboard and provide option to the user to convert multiple alerts to convert to Tasks.#
 #           Generated tasks can be seen inside ITM application.                                            #
-# ##########################################################################################################
-# Modified Date  ####   Modified By     ####    Comments                                                   #
-# Santosh               02-04-2022            Initial Code                                                 #
-# Sandeep               22-04-2022            functionality Changes done    
-# Sandeep               26-04-2022            UI changes                               #
+# Modified By : Santosh Chakre,
+#               Sandeep B                                                                           #
+# Modified Date : 02-04-2022 
+#               : 15-04-2022       
+# Modified Changes :                                                                        #
 # ---------------------------------------------------------------------------------------------------------#
 
 # Importing required libraries
 import dash
+from pathlib import Path
 from dash.dependencies import Input, Output, State
-from dash import dcc, html, dash_table
+from dash import dcc, html, dash_table, callback_context    
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -34,18 +35,13 @@ new_df = df.drop(['Column1', 'OFFSET_MUWI', 'ACTIVE_TUBE_PRESSURE - Only For Off
                      , 'THRESHOLD_CASE_PRESSURE - Only For Offset', 'SEVERITY'
                      , 'OFFSET_WELL - Only for Offset Alert', 'DETECTED_COST_ESTIMATE- for Cost Alert'
                      , 'DETECTED_COST_PLANNED- for Cost Alert', 'COST_OVERRUN_THRESHOLD - for Cost Alert'], axis=1)
-df2 = pd.DataFrame({"OBJECT_ID":[0],"ALERT_TYPE":[0],"ACTIVE_MUWI":[0],"ALERT_TIME":[0],"ELAPSED_TIME(Tn-T0) in Min":[0],
-                    "SAND":[0],"FLUID_VOLUME":[0],"SAND_CONC":[0],"IS_ACKNOWLEDGED":[0],"IS_VALID":[0],"ACTIVE_WELL":"Select All","STAGE":[0],"SLURRY_RATE_THRESHOLD":[0],
-                    "WH_PRESSURE_INCREASE_THRESHOLD":[0],"TOTAL_SAND_THRESHOLD":[0],"WH_SAND_CONC_THRESHOLD":[0],"SLURRY_RATE_INCREASE_THRESHOLD":[0],"DETECTED_SLURRY_RATE":[0],
-                    "DETECTED_WH_PRESSURE":[0],"Date":[0],"Date_Time":[0]})
-new_df.append(df2)
 
 # Converting Datetime and creating new columns "DATE" and "DATE_TIME" from ALERT_TIME
 new_df['Date'] = pd.to_datetime(new_df['ALERT_TIME'], format='%d-%m-%Y %H:%M').dt.date
 new_df["Date"] = pd.to_datetime(new_df["Date"])
 new_df['Date_Time'] = pd.to_datetime(new_df['ALERT_TIME'], format='%d-%m-%Y %H:%M').dt.time
 
-print(new_df)
+# print(new_df)
 
 # Joining Active Well + Stage
 idx = 0
@@ -60,7 +56,6 @@ dataframe = new_df.loc[:, ['ACTIVE WELL - STAGE', 'ALERT_TIME', 'ELAPSED_TIME(Tn
 # Get the highest active well count
 active_well_count = new_df.groupby(['ACTIVE_WELL'])[['OBJECT_ID']].count().reset_index()
 active_well_count.sort_values(by=['OBJECT_ID'], inplace=True, ascending=False)
-
 
 # To get only date
 new_df['Only_Date'] = pd.to_datetime(new_df['ALERT_TIME']).dt.date
@@ -124,35 +119,37 @@ dropdown_options.insert(0,"Select All")
 # -----------------------------------------------
 # App layout
 
-app = dash.Dash(__name__, prevent_initial_callbacks=True, suppress_callback_exceptions=True)
-
-app.layout = html.Div([
+dash_app = dash.Dash(__name__, prevent_initial_callbacks=True, suppress_callback_exceptions=True)
+app = dash_app.server
+dash_app.layout = html.Div([
     # ----------------------------------------------------
     # Data table definition and data population
     # ---------------------------------------------------
     # First Row - Heading
     html.Div([
-        # Company Logo
-        html.Div([
-            html.Img(src=app.get_asset_url('images/cherries.png'), id='company-img',
-                     style={'height': '60px',
-                            'width': 'auto',
-                            'margin-bottom': '25px'}),
-        ], className='one-third column'),
 
         # Project Title
+
+
+
         html.Div([
             html.Div([
-                html.H3('Murphy Alert Data', style={'margin-bottom': '0px', 'color': '#1f2c56'}),
-                html.H5('Track Murphy Alert Data', style={'margin-bottom': '0px', 'color': '#1f2c56'})
+                html.H3('Convert  Alerts To Tasks', style={'margin-bottom': '0px', 'color': '#1f2c56'}),
+                # html.H6('Track  Alert Data', style={'margin-bottom': '0px', 'color': '#1f2c56'})
             ])
-        ], id='title', className='one-half column'),
+        ], id='title', className='one-third column'),
+
+        html.Div([
+            html.Div([
+                html.H3('IOT Data', style={'margin-bottom': '0px', 'color': '#1f2c56'}),
+            ])
+        ], id='title2', className='one-third column'),
 
         # Last Updated
         html.Div([
             html.H6('Last Updated :' + str(
                 datetime.datetime.strptime(new_df['ALERT_TIME'].iloc[-1], '%d-%m-%Y %H:%M').strftime(
-                    '%B %d %Y , %H:%M:%S')) + ' (UTC)', style={'color': '#1f2c56'}),
+                    '%B %d %Y , %H:%M:%S')) + ' (UTC)', style={'color': 'Orange','font-size':'14px'}),
         ], className='one-third column', id='title1'),
     ], id='header', className='row flex-display', style={'margin-bottom': '25px'}),
 
@@ -167,10 +164,10 @@ app.layout = html.Div([
             html.P(f"{total_alerts}",
                    style={'textAlign': 'center', 'color': 'Orange', 'fontSize': 40}
                    ),
-            html.P(
-                'New ' + f"{total_static_card:,.0f}" + ' (' + str(
-                    change_percentage) + '%)',
-                style={'textAlign': 'center', 'color': 'Orange', 'fontSize': 15, 'margin-top': '-15px'}),
+            # html.P(
+            #     'New ' + f"{total_static_card:,.0f}" + ' (' + str(
+            #         change_percentage) + '%)',
+            #     style={'textAlign': 'center', 'color': 'Orange', 'fontSize': 15, 'margin-top': '-15px'}),
         ], className='card_container three columns'),
         # Total Screen-out Alert
         html.Div([
@@ -212,12 +209,12 @@ app.layout = html.Div([
                     style={'textAlign': 'center', 'color': '#1f2c56'}
                     ),
             html.P(f"{TotalConvertedTaskCount}",
-                   style={'textAlign': 'center', 'color': '#00FF00', 'fontSize': 40}
+                   style={'textAlign': 'center', 'color': '#2A5674', 'fontSize': 40}
                    ),
             html.P(
                 'New ' + f"{newConvertedTasks}" + ' (' + str(
                     newTaskPercentage) + '%)',
-                style={'textAlign': 'center', 'color': '#00FF00', 'fontSize': 15, 'margin-top': '-15px'}),
+                style={'textAlign': 'center', 'color': '#00CC96', 'fontSize': 15, 'margin-top': '-15px'}),
         ], className='card_container three columns'),
     ], className='row flex-display'),
 
@@ -234,26 +231,22 @@ app.layout = html.Div([
                          options=[{'label': c, 'value': c }
                                   for c in (dropdown_options)
                                   ], className='dcc_compon')
-        ], className='three columns'),
+        ], className='three columns',style={'margin-bottom': '25px'}),
 
         # Active Stage Dropdown
-        html.Div([
-            html.P('Select Active Stage :', className='fix_label', style={'color': '#1f2c56'}),
-            dcc.Dropdown(id='s_active_stage',
-                         multi=False,
-                         searchable=True,
-                         value='Select Stage',
-                         placeholder='Select Stage',
-                         options=[{'label': c, 'value': c}
-                                  for c in (new_df['STAGE'].unique())
-                                  ], className='dcc_compon')
-            # dcc.Dropdown(id='s_active_stage')
-        ], className='three columns'),
-        html.Div([
-            # dcc.Link(html.A('Go to ITM'), href="https://iwm-wb.azurewebsites.net/workspace/mytask"),
-            html.A('Go to ITM', href="https://itm.cherryworkproducts.com/", target="_blank"),
-        ], className='three columns'),
-    ], className='create_container row flex-display', style={'margin-bottom': '25px'}),
+    #     html.Div([
+    #         html.P('Select Active Stage :', className='fix_label', style={'color': '#1f2c56'}),
+    #         dcc.Dropdown(id='s_active_stage',
+    #                      multi=False,
+    #                      searchable=True,
+    #                      value='Select Stage',
+    #                      placeholder='Select Stage',
+    #                      options=[{'label': c, 'value': c}
+    #                               for c in (new_df['STAGE'].unique())
+    #                               ], className='dcc_compon')
+    #         # dcc.Dropdown(id='s_active_stage')
+    #     ], className='three columns'),
+    # ], className='create_container row flex-display', style={'margin-bottom': '25px'}),
 
     # Fourth Row - Graphs
     html.Div([
@@ -273,8 +266,6 @@ app.layout = html.Div([
         ], className='twelve columns create_container '),
     ],  style={'margin-bottom': '25px'}),
     # Fifth Row - Data Table
-
- 
 
     html.Div([
         dash_table.DataTable(
@@ -330,44 +321,26 @@ app.layout = html.Div([
         html.Div([
             html.Button('Create Task', id='save_to_db', n_clicks=0, style={'color': 'Orange', 'margin-bottom': '25px'}),
         ], className='three columns'),
+        # Create notification when saving to excel
+        html.Div(id='container-button-timestamp') ,
     ], className='row flex-display', style={'margin-bottom': '25px'}),
     html.Div(id='output_div'),
     html.Div(id='divout'),
     
     html.Div(id='datatable-interactivity-container'),
 
-    # Create notification when saving to excel
-    html.Div(id='placeholder', children=[]),
     dcc.Store(id="store", data=0),
     dcc.Interval(id='interval', interval=1000),
 
 ], id='main-container', style={'display': 'flex', 'flex-direction': 'column'})
 
-#buttons
-@app.callback(
-    Output("modal1", "is_open"),
-    [Input("save_to_csv", "n_clicks"), Input("okay", "n_clicks")],
-    [State("modal1", "is_open")],
-)
-def toggle_modal(n1, n2, is_open):
-    if n1 or n2:
-        return not is_open
-    return is_open
-
-@app.callback(
-    Output("modal2", "is_open"),
-    [Input("save_to_db", "n_clicks"), Input("close", "n_clicks")],
-    [State("modal2", "is_open")],
-)
-def toggle_modal(n1, n2, is_open):
-    if n1 or n2:
-        return not is_open
-    return is_open
+])
 
 # Multi Line Chart
-@app.callback(Output('multi-line-chart', 'figure'),
+@dash_app.callback(Output('multi-line-chart', 'figure'),
               [Input('s_active_well', 'value'), ],
-              prevent_initial_call=False, )
+              prevent_initial_call=False,)
+
 def update_multi_line_chart(active_well):
     mul_line_chart_df = new_df.copy()
     mul_line_chart_df['SAND_BY_1000'] = mul_line_chart_df['SAND'] / 1000.0
@@ -571,7 +544,7 @@ def update_multi_line_chart(active_well):
 
 
 # Pie Chart
-@app.callback(Output('pie-chart', 'figure'),
+@dash_app.callback(Output('pie-chart', 'figure'),
               [Input('s_active_well', 'value'), ],
               prevent_initial_call=False, )
 def update_pie_chart(active_well):
@@ -619,11 +592,10 @@ def update_pie_chart(active_well):
                             )
         return pie_fig
 
-
     return pie_fig
 
 # Horizontal Bar Chart
-@app.callback(
+@dash_app.callback(
     Output('h-bar-chart', 'figure'),
     [Input('s_active_well', 'value'), ],
     prevent_initial_call=False,
@@ -645,7 +617,7 @@ def update_bar(active_well):
             counter3=0
 
     fig_bar = px.bar(dff, x='Total Active well', y='ACTIVE_WELL', template='seaborn',
-            orientation='h', title="Active wells count", text_auto=True)
+            orientation='h', title="Active well count", text_auto=True,labels=dict(x="Total Active Wells",y="Active Well"))
     fig_bar.update_yaxes(tickangle=30)
     fig_bar.update_xaxes(showgrid=False)
     fig_bar.update_yaxes(showgrid=False)
@@ -663,17 +635,16 @@ def update_bar(active_well):
     if active_well == None or active_well == "Select All":
         # print("inside last if")
         fig_bar = px.bar(dffcopy, x='Total Active well', y='ACTIVE_WELL', template='seaborn',
-                orientation='h', title="Active wells count", text_auto=True)
+                orientation='h', title="Active wells count", text_auto=True,labels={'x':"Total Active Wells",'y':"Active Well"})
         fig_bar.update_yaxes(tickangle=30)
-        fig_bar.update_xaxes(showgrid=False)
-        fig_bar.update_yaxes(showgrid=False)
+        fig_bar.update_xaxes(showgrid=False,title="Total Active Wells")
+        fig_bar.update_yaxes(showgrid=False,title="Active Well")
         fig_bar.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)',
                             'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-                            },
+                          },
                             font_color='#1f2c56',
                             margin=dict(l=20, r=20, t=30, b=20),
                             )
-
         fig_bar.update_traces(marker_color='Orange', textfont_size=12, textangle=0, textposition="outside",
                             cliponaxis=False)
         return fig_bar
@@ -681,43 +652,35 @@ def update_bar(active_well):
     return fig_bar
 
 # Save to CSV
-@app.callback(
-    [Output('placeholder', 'children'),
-     Output("store", "data")],
+@dash_app.callback(
+    Output('container-button-timestamp', 'children'),
     [Input('save_to_csv', 'n_clicks'),
+     Input('save_to_db', 'n_clicks'),
      Input("interval", "n_intervals")],
     [State('datatable-interactivity', 'data'),
-     State('store', 'data')]
+     State('store', 'data')],prevent_initial_call=True,
 )
-def df_to_csv(n_clicks, n_intervals, dataset, s):
-    output = html.Plaintext("The data has been saved to your folder.",
-                            style={'color': 'green', 'font-weight': 'bold', 'font-size': 'large'})
-    no_output = html.Plaintext("", style={'margin': "0px"})
+def df_to_csv(n_clicks,nclicks,n_intervals, dataset, s):
+    changed_id = [p['prop_id'] for p in callback_context.triggered][0]
 
-    input_triggered = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
-
-    if input_triggered == "save_to_csv":
-        s = 6
+    if "save_to_csv" in changed_id:
         df = pd.DataFrame(dataset)
-        # print(df)
-        path='C:\\Users\\sandeep\\Downloads\\'
-        df.to_csv(os.path.join(path,'Notification_Table_Data.csv'))
-        return output, s
-    elif input_triggered == 'interval' and s > 0:
-        s = s - 1
-        if s > 0:
-            return output, s
-        else:
-            return no_output, s
-    elif s == 0:
-        return no_output, s
+        path=str(Path.home() / "Downloads")
+        df.to_csv(os.path.join(path,'IOT_Alerts.csv'))
+        return(html.Plaintext("The data has been saved to your folder.",
+                            style={'color': 'green', 'font-weight': 'bold', 'font-size': 'large'}))
+    elif "save_to_db" in changed_id:
+        return(html.Plaintext("The Task Has Been Created.",
+                            style={'color': 'green', 'font-weight': 'bold', 'font-size': 'large'}))
+    
+    return dash.no_update
 
 
 # ---------------------------SAVE to CSV END---------------------
 
 # ---------------------------------------------------------------
 # Highlighting Selected cells
-@app.callback(
+@dash_app.callback(
     Output('output_div', 'children'),
     Input('datatable-interactivity', 'active_cell'),
     State('datatable-interactivity', 'data')
@@ -730,19 +693,16 @@ def getActiveCell(active_cell, data):
         # html.P(f'Row: {row}, Col: {col}, value: {cellData}')
         return 
 
-
 # Highlighting Selected rows
 
-
-@app.callback(
+@dash_app.callback(
     Output('datatable-interactivity', 'style_data_conditional'),
     [Input('datatable-interactivity', 'selected_rows')])
 def update_styles(selected_rows):
-    return [{'if': {'row_index': i}, 'background_color': '#040B3A'} for i in selected_rows]
-
+    return [{'if': {'row_index': i}, 'background_color': '#FFFCCF'} for i in selected_rows]
 
 # SAVE TO DB selecting rows data
-@app.callback(
+@dash_app.callback(
     Output('datatable-interactivity-container', "children"),
     [Input('datatable-interactivity', "derived_virtual_row_ids"),
      Input('datatable-interactivity', "derived_virtual_selected_rows"),
@@ -758,7 +718,7 @@ def f(row_ids, derived_virtual_selected_rows, active_cell, n_clicks, data):
             dff.append(dataframe.loc[i])
 
     if input_triggered == "save_to_db":
-        print("save to db")
+        # print("save to db")
         for row in dff:
             i = random.randint(1, 1000)
             requestID = "MA00" + str(i)
@@ -814,12 +774,10 @@ def f(row_ids, derived_virtual_selected_rows, active_cell, n_clicks, data):
             db.close()
             print("Successfully Inserted into database  Active well-stage: " + row[0])
             
-            # html.Plaintext("Task has been created Successfully.",
-            #                 style={'color': 'green', 'font-weight': 'bold', 'font-size': 'large'})
     return
 
 
 # ---------SAVE to DB End----------------------------
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    dash_app.run_server(debug=True)
